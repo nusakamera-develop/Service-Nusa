@@ -49,16 +49,15 @@
         import { getFirestore, collection, doc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Firebase Config setup using environment fallback
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : {
-                apiKey: "AIzaSyDemoKeyOnly",
-                authDomain: "nusa-kamera-service.firebaseapp.com",
-                projectId: "nusa-kamera-service",
-                storageBucket: "nusa-kamera-service.appspot.com",
-                messagingSenderId: "123456789",
-                appId: "1:123456789:web:abcdef"
-            };
+        const firebaseConfig = {
+  apiKey: "AIzaSyDaffLKxMPBy1JEzYYJpC6FUT9V7_sYCCA",
+  authDomain: "nusa-kamera-service.firebaseapp.com",
+  projectId: "nusa-kamera-service",
+  storageBucket: "nusa-kamera-service.firebasestorage.app",
+  messagingSenderId: "598211039990",
+  appId: "1:598211039990:web:1eb81e442447a0b6a3d2d7",
+  measurementId: "G-V57JE2CMN5"
+};
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
