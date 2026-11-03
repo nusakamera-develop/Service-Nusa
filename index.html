@@ -166,10 +166,28 @@
             const [tabPinInput, setTabPinInput] = useState('');
             const [tabPinError, setTabPinError] = useState('');
 
-            const [transactions, setTransactions] = useState([]);
-            const [withdrawals, setWithdrawals] = useState([]);
+            // Persistent LocalStorage State Initializers (Prevent data loss on refresh)
+            const [transactions, setTransactions] = useState(() => {
+                const localData = localStorage.getItem('nusa_kamera_transactions');
+                return localData ? JSON.parse(localData) : INITIAL_TRANSACTIONS;
+            });
+
+            const [withdrawals, setWithdrawals] = useState(() => {
+                const localWd = localStorage.getItem('nusa_kamera_withdrawals');
+                return localWd ? JSON.parse(localWd) : [];
+            });
+
             const [isOnlineSync, setIsOnlineSync] = useState(false);
             const [authUser, setAuthUser] = useState(null);
+
+            // Auto-save to LocalStorage whenever transactions or withdrawals change
+            useEffect(() => {
+                localStorage.setItem('nusa_kamera_transactions', JSON.stringify(transactions));
+            }, [transactions]);
+
+            useEffect(() => {
+                localStorage.setItem('nusa_kamera_withdrawals', JSON.stringify(withdrawals));
+            }, [withdrawals]);
 
             // Filters
             const [selectedStore, setSelectedStore] = useState('ALL');
@@ -234,33 +252,33 @@
                     onAuthStateChanged(auth, (user) => {
                         if (user) {
                             setAuthUser(user);
-                            setIsOnlineSync(true);
+                            
+                            // Check if valid Firebase credentials are provided
+                            if (typeof __firebase_config !== 'undefined') {
+                                setIsOnlineSync(true);
 
-                            // 2. Real-time Listener for Public Service Transactions
-                            const txCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'transactions');
-                            onSnapshot(txCollectionRef, (snapshot) => {
-                                const docsData = snapshot.docs.map(docSnap => docSnap.data());
-                                if (docsData.length > 0) {
-                                    setTransactions(docsData);
-                                } else {
-                                    // Seed initial mock data if remote database is empty
-                                    INITIAL_TRANSACTIONS.forEach(item => {
-                                        setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'transactions', item.id), item);
-                                    });
-                                    setTransactions(INITIAL_TRANSACTIONS);
-                                }
-                            }, (err) => {
-                                console.error("Snapshot error:", err);
-                            });
+                                // 2. Real-time Listener for Public Service Transactions
+                                const txCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'transactions');
+                                onSnapshot(txCollectionRef, (snapshot) => {
+                                    const docsData = snapshot.docs.map(docSnap => docSnap.data());
+                                    if (docsData.length > 0) {
+                                        setTransactions(docsData);
+                                    }
+                                }, (err) => {
+                                    console.error("Snapshot error:", err);
+                                });
 
-                            // 3. Real-time Listener for Profit Withdrawals
-                            const wdCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'withdrawals');
-                            onSnapshot(wdCollectionRef, (snapshot) => {
-                                const wdData = snapshot.docs.map(docSnap => docSnap.data());
-                                setWithdrawals(wdData);
-                            }, (err) => {
-                                console.error("Withdrawal snapshot error:", err);
-                            });
+                                // 3. Real-time Listener for Profit Withdrawals
+                                const wdCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'withdrawals');
+                                onSnapshot(wdCollectionRef, (snapshot) => {
+                                    const wdData = snapshot.docs.map(docSnap => docSnap.data());
+                                    if (wdData.length > 0) {
+                                        setWithdrawals(wdData);
+                                    }
+                                }, (err) => {
+                                    console.error("Withdrawal snapshot error:", err);
+                                });
+                            }
                         }
                     });
                 };
@@ -272,7 +290,7 @@
 
             // Helper function to sync a single transaction document
             const saveTransactionToCloud = async (txData) => {
-                if (window.firebaseDb && window.firebaseModules && authUser) {
+                if (window.firebaseDb && window.firebaseModules && authUser && isOnlineSync) {
                     const { doc, setDoc } = window.firebaseModules;
                     const db = window.firebaseDb;
                     const appId = window.firebaseAppId;
@@ -559,7 +577,7 @@
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
                             <div className="flex items-center space-x-3">
                                 <div className="bg-white p-2 rounded-xl text-orange-600 shadow-inner">
-                                    <img src="./logowhite.png" alt="Logo Nusa Kamera" className="h-10 w-auto object-contain" />
+                                    <i className="fa-solid fa-camera-retro text-2xl"></i>
                                 </div>
                                 <div>
                                     <div className="flex items-center space-x-2">
