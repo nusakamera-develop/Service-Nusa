@@ -178,6 +178,7 @@
 
             const [isOnlineSync, setIsOnlineSync] = useState(false);
             const [authUser, setAuthUser] = useState(null);
+            const [isSyncingCloud, setIsSyncingCloud] = useState(false);
 
             // Auto-save to LocalStorage whenever transactions or withdrawals change
             useEffect(() => {
@@ -299,6 +300,45 @@
                         console.error("Failed to save doc to cloud:", err);
                         showToast("Gagal simpan ke cloud: " + (err.message || err.code));
                     }
+                }
+            };
+
+            // Bulk sync all local transactions and withdrawals to Firebase Cloud
+            const handleSyncAllToCloud = async () => {
+                if (!window.firebaseDb || !window.firebaseModules) {
+                    showToast("Firebase belum siap, periksa koneksi!");
+                    return;
+                }
+                if (transactions.length === 0 && withdrawals.length === 0) {
+                    showToast("Tidak ada data untuk di-sync.");
+                    return;
+                }
+
+                setIsSyncingCloud(true);
+                const { doc, setDoc } = window.firebaseModules;
+                const db = window.firebaseDb;
+                const appId = window.firebaseAppId;
+
+                try {
+                    let countTx = 0;
+                    let countWd = 0;
+
+                    for (const tx of transactions) {
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'transactions', tx.id), tx);
+                        countTx++;
+                    }
+
+                    for (const wd of withdrawals) {
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'withdrawals', wd.id), wd);
+                        countWd++;
+                    }
+
+                    showToast(`Berhasil upload ${countTx} transaksi ke Cloud!`);
+                } catch (err) {
+                    console.error("Gagal sync data ke cloud:", err);
+                    showToast(`Gagal sync: ${err.message || err.code}`);
+                } finally {
+                    setIsSyncingCloud(false);
                 }
             };
 
@@ -616,7 +656,8 @@
 
                     {/* Navigation Bar */}
                     <nav className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm no-print">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-2 sm:space-x-8">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center overflow-x-auto">
+                            <div className="flex space-x-2 sm:space-x-8">
                             <button
                                 onClick={() => setActiveTab('dashboard')}
                                 className={`py-3.5 px-3 border-b-2 font-bold text-xs sm:text-sm flex items-center space-x-2 transition-all ${activeTab === 'dashboard' ? 'border-orange-600 text-orange-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
@@ -644,6 +685,17 @@
                                 <i className="fa-solid fa-wallet"></i>
                                 <span>Laporan Keuangan</span>
                                 {!isFinanceUnlocked && <i className="fa-solid fa-lock text-xs text-orange-500 ml-1"></i>}
+                            </button>
+                        </div>
+
+                        <button
+                            onClick={handleSyncAllToCloud}
+                            disabled={isSyncingCloud}
+                            className="my-2 ml-2 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition-all flex-shrink-0 cursor-pointer"
+                            title="Upload seluruh data lokal ke Firebase Database"
+                        >
+                            <i className={`fa-solid ${isSyncingCloud ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`}></i>
+                            <span>{isSyncingCloud ? 'Mengunggah...' : 'Sync ke Cloud'}</span>
                             </button>
                         </div>
                     </nav>
