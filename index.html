@@ -253,7 +253,7 @@
                             setAuthUser(user);
                             
                             // Check if valid Firebase credentials are provided
-                            if (typeof __firebase_config !== 'undefined') {
+                            if (window.firebaseDb) {
                                 setIsOnlineSync(true);
 
                                 // 2. Real-time Listener for Public Service Transactions
@@ -297,6 +297,7 @@
                         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'transactions', txData.id), txData);
                     } catch (err) {
                         console.error("Failed to save doc to cloud:", err);
+                        showToast("Gagal simpan ke cloud: " + (err.message || err.code));
                     }
                 }
             };
